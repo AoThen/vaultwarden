@@ -76,11 +76,11 @@ RUN source /env-cargo && \
 COPY ./Cargo.* ./rust-toolchain.toml ./build.rs ./
 COPY ./macros ./macros
 
-ARG CARGO_PROFILE=release
+ARG CARGO_PROFILE=release-micro
 
 # Configure the DB ARG as late as possible to not invalidate the cached layers above
 # Enable MiMalloc to improve performance on Alpine builds
-ARG DB=sqlite,mysql,postgresql,enable_mimalloc
+ARG DB=sqlite,enable_mimalloc
 
 # Builds your dependencies and removes the
 # dummy project, except the target folder
