@@ -1,0 +1,202 @@
+# =============================================================================
+# Vaultwarden Docker Compose 部署示例
+# =============================================================================
+# 更多配置选项请参考: https://github.com/dani-garcia/vaultwarden/wiki
+# =============================================================================
+
+services:
+  vaultwarden:
+    image: vaultwarden/server:latest
+    container_name: vaultwarden
+    restart: unless-stopped
+    
+    # 环境变量配置
+    environment:
+      # 必填: 设置你的域名，用于生成正确的链接
+      # 生产环境请改为你的实际域名，如: https://vault.example.com
+      - DOMAIN=http://localhost:8080
+      
+      # 管理员面板令牌 (建议使用 Argon2 哈希)
+      # 使用命令生成: docker exec -it vaultwarden /vaultwarden hash
+      # 取消注释并设置你的管理员令牌
+      # - ADMIN_TOKEN=your_admin_token_here
+      
+      # 用户注册控制
+      # - SIGNUPS_ALLOWED=true          # 是否允许新用户注册
+      # - SIGNUPS_VERIFY=false          # 是否要求用户验证邮箱
+      
+      # 邀请设置
+      # - INVITATIONS_ALLOWED=true      # 是否允许组织管理员邀请用户
+      # - INVITATION_ORG_NAME=Vaultwarden
+      
+      # WebSocket 通知 (实时同步)
+      - ENABLE_WEBSOCKET=true
+      
+      # 日志设置
+      - EXTENDED_LOGGING=true
+      - LOG_LEVEL=info
+      
+      # 时区设置
+      - TZ=Asia/Shanghai
+      
+      # Umask 设置 (文件权限)
+      # - UMASK=0022
+      
+      # ===========================================
+      # 数据库配置 (默认使用 SQLite)
+      # ===========================================
+      # SQLite (默认，无需额外配置)
+      # - DATABASE_URL=/data/db.sqlite3
+      
+      # PostgreSQL (取消注释并配置)
+      # - DATABASE_URL=postgresql://vaultwarden:password@postgres:5432/vaultwarden
+      
+      # MySQL (取消注释并配置)
+      # - DATABASE_URL=mysql://vaultwarden:password@mysql:3306/vaultwarden
+      
+      # ===========================================
+      # SMTP 邮件配置 (取消注释并配置)
+      # ===========================================
+      # - SMTP_HOST=smtp.example.com
+      # - SMTP_FROM=vaultwarden@example.com
+      # - SMTP_FROM_NAME=Vaultwarden
+      # - SMTP_SECURITY=starttls         # starttls | force_tls | off
+      # - SMTP_PORT=587
+      # - SMTP_USERNAME=your_username
+      # - SMTP_PASSWORD=your_password
+      
+      # ===========================================
+      # 推送通知配置 (可选)
+      # 从 https://bitwarden.com/host 获取密钥
+      # ===========================================
+      # - PUSH_ENABLED=false
+      # - PUSH_INSTALLATION_ID=CHANGEME
+      # - PUSH_INSTALLATION_KEY=CHANGEME
+      
+      # ===========================================
+      # 2FA/MFA 配置 (可选)
+      # ===========================================
+      # Yubico OTP
+      # - YUBICO_CLIENT_ID=12345
+      # - YUBICO_SECRET_KEY=your_secret_key
+      
+      # Duo Security
+      # - DUO_IKEY=your_ikey
+      # - DUO_SKEY=your_skey
+      # - DUO_HOST=api-xxxxxxxx.duosecurity.com
+      
+      # ===========================================
+      # SSO 配置 (可选)
+      # ===========================================
+      # - SSO_ENABLED=false
+      # - SSO_AUTHORITY=https://auth.example.com
+      # - SSO_CLIENT_ID=your_client_id
+      # - SSO_CLIENT_SECRET=your_client_secret
+      
+      # ===========================================
+      # 安全设置
+      # ===========================================
+      # - LOGIN_RATELIMIT_SECONDS=60
+      # - LOGIN_RATELIMIT_MAX_BURST=10
+      # - ADMIN_RATELIMIT_SECONDS=300
+      # - ADMIN_RATELIMIT_MAX_BURST=3
+      
+      # ===========================================
+      # 附件限制 (KB)
+      # ===========================================
+      # - ORG_ATTACHMENT_LIMIT=         # 组织附件限制
+      # - USER_ATTACHMENT_LIMIT=        # 用户附件限制
+      # - USER_SEND_LIMIT=              # 用户 Send 限制
+      
+    # 端口映射
+    ports:
+      - "8080:80"      # Web 界面端口
+      # - "3012:3012"  # WebSocket 端口 (如果使用独立端口)
+    
+    # 数据卷挂载
+    volumes:
+      - ./data:/data   # 数据持久化目录
+    
+    # 健康检查
+    healthcheck:
+      test: ["CMD", "/healthcheck.sh"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    
+    # 资源限制 (可选，根据实际情况调整)
+    # deploy:
+    #   resources:
+    #     limits:
+    #       cpus: '1.0'
+    #       memory: 512M
+    #     reservations:
+    #       cpus: '0.25'
+    #       memory: 128M
+
+# =============================================================================
+# PostgreSQL 数据库配置示例 (可选)
+# =============================================================================
+# 如果需要使用 PostgreSQL，取消以下内容注释，并在上方 DATABASE_URL 中配置连接字符串
+# =============================================================================
+# 
+#   postgres:
+#     image: postgres:16-alpine
+#     container_name: vaultwarden-postgres
+#     restart: unless-stopped
+#     environment:
+#       - POSTGRES_USER=vaultwarden
+#       - POSTGRES_PASSWORD=your_secure_password
+#       - POSTGRES_DB=vaultwarden
+#     volumes:
+#       - ./postgres-data:/var/lib/postgresql/data
+#     healthcheck:
+#       test: ["CMD-SHELL", "pg_isready -U vaultwarden"]
+#       interval: 30s
+#       timeout: 10s
+#       retries: 3
+
+# =============================================================================
+# MySQL 数据库配置示例 (可选)
+# =============================================================================
+# 如果需要使用 MySQL，取消以下内容注释，并在上方 DATABASE_URL 中配置连接字符串
+# =============================================================================
+# 
+#   mysql:
+#     image: mysql:8
+#     container_name: vaultwarden-mysql
+#     restart: unless-stopped
+#     environment:
+#       - MYSQL_ROOT_PASSWORD=your_root_password
+#       - MYSQL_USER=vaultwarden
+#       - MYSQL_PASSWORD=your_secure_password
+#       - MYSQL_DATABASE=vaultwarden
+#     volumes:
+#       - ./mysql-data:/var/lib/mysql
+#     healthcheck:
+#       test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+#       interval: 30s
+#       timeout: 10s
+#       retries: 3
+
+# =============================================================================
+# 反向代理配置示例 (可选)
+# =============================================================================
+# 推荐: 使用独立的反向代理 (如 Nginx, Caddy, Traefik)
+# 以下示例仅作参考，生产环境建议使用外部反向代理
+# =============================================================================
+# 
+#   caddy:
+#     image: caddy:2
+#     container_name: vaultwarden-caddy
+#     restart: unless-stopped
+#     ports:
+#       - "80:80"
+#       - "443:443"
+#     volumes:
+#       - ./caddy/Caddyfile:/etc/caddy/Caddyfile
+#       - ./caddy/data:/data
+#       - ./caddy/config:/config
+#     depends_on:
+#       - vaultwarden
